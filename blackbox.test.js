@@ -103,7 +103,7 @@ async function getAllSelectTriggers(page) {
 async function getRepoTrigger(page) {
   const triggers = await getAllSelectTriggers(page);
   for (const item of triggers) {
-    if (!item.text) continue;
+  if (!item.text || item.text.length < 2) continue;
     if (isModelText(item.text)) continue;
     if (isAgentText(item.text)) continue;
     if (/^(main|master|default|develop|add-e2e|release|hotfix)$/i.test(item.text)) continue;
@@ -220,6 +220,44 @@ async function findBranchButton(page) {
 // beforeEach — navigate and settle. No interactions.
 // ─────────────────────────────────────────────────────────────────────
 test.beforeEach(async ({ page }) => {
+
+
+  await page.addInitScript(() => {
+    const OWNER = "HARNOOR2004";
+
+    const fakeRepos = [{
+      id: 1,
+      name: "Alzheimers-App",
+      full_name: `${OWNER}/Alzheimers-App`,
+      private: false,
+      default_branch: "main"
+    }];
+
+    const fakeBranches = [{
+      name: "main"
+    }];
+
+    localStorage.setItem(
+      `github-cache-repos-${OWNER}`,
+      JSON.stringify({
+        repos: fakeRepos,
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000
+      })
+    );
+
+    localStorage.setItem(
+      `github-cache-branches-${OWNER}-Alzheimers-App`,
+      JSON.stringify({
+        branches: fakeBranches,
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000
+      })
+    );
+localStorage.setItem('github-selected-repo', `${OWNER}/Alzheimers-App`);
+    localStorage.setItem('selected-repo', `${OWNER}/Alzheimers-App`);
+    localStorage.setItem('selected-branch', 'main');
+  });
+
+ 
   await page.goto(SITE);
 
   await page.waitForSelector('text=Agent Tasks', { timeout: 60000 });
@@ -228,7 +266,7 @@ test.beforeEach(async ({ page }) => {
   await closeBanner(page);
   await page.keyboard.press('Escape');
 
-  await page.waitForTimeout(2000); // final settle
+  await page.waitForTimeout(2000);
 });
 
 // =====================================================================
