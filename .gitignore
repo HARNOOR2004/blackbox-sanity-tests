@@ -1,0 +1,9 @@
+node_modules/
+auth/
+auth.json
+test-results/
+playwright-report/
+.env
+chrome-profile/
+test-report/
+verify-login.js
