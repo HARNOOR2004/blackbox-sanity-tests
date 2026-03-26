@@ -79,15 +79,22 @@ function isAgentText(text) {
  * Excludes known sidebar labels only.
  */
 async function getAllSelectTriggers(page) {
-  const all = page.locator('[data-slot="select-trigger"]');
+  const composer = page.locator('div:has(textarea)').last();
+
+  const all = composer.locator('[data-slot="select-trigger"]'); 
+
   const count = await all.count();
   const result = [];
+
   for (let i = 0; i < count; i++) {
     const t = all.nth(i);
     const text = (await t.innerText().catch(() => '')).trim();
-    if (SIDEBAR_LABEL_RE.test(text)) continue;
+
+    console.log("COMPOSER trigger:", text); // debug
+
     result.push({ trigger: t, text, index: i });
   }
+
   return result;
 }
 
