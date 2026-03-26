@@ -103,7 +103,7 @@ async function getAllSelectTriggers(page) {
 async function getRepoTrigger(page) {
   const triggers = await getAllSelectTriggers(page);
   for (const item of triggers) {
-  if (!item.text || item.text.length < 2) continue;
+    if (!item.text) continue;
     if (isModelText(item.text)) continue;
     if (isAgentText(item.text)) continue;
     if (/^(main|master|default|develop|add-e2e|release|hotfix)$/i.test(item.text)) continue;
@@ -220,73 +220,15 @@ async function findBranchButton(page) {
 // beforeEach — navigate and settle. No interactions.
 // ─────────────────────────────────────────────────────────────────────
 test.beforeEach(async ({ page }) => {
-
-
-  await page.addInitScript(() => {
-    const OWNER = "HARNOOR2004";
-
-    const fakeRepos = [{
-      id: 1,
-      name: "Alzheimers-App",
-      full_name: `${OWNER}/Alzheimers-App`,
-      private: false,
-      default_branch: "main"
-    }];
-
-    const fakeBranches = [{
-      name: "main"
-    }];
-
-    localStorage.setItem(
-      `github-cache-repos-${OWNER}`,
-      JSON.stringify({
-        repos: fakeRepos,
-        expiresAt: Date.now() + 24 * 60 * 60 * 1000
-      })
-    );
-
-    localStorage.setItem(
-      `github-cache-branches-${OWNER}-Alzheimers-App`,
-      JSON.stringify({
-        branches: fakeBranches,
-        expiresAt: Date.now() + 24 * 60 * 60 * 1000
-      })
-    );
-localStorage.setItem('github-selected-repo', `${OWNER}/Alzheimers-App`);
-    localStorage.setItem('selected-repo', `${OWNER}/Alzheimers-App`);
-    localStorage.setItem('selected-branch', 'main');
-  });
-
-await page.route('**/api/**', route => {
-  const url = route.request().url();
-
-  if (url.includes('github') || url.includes('repo') || url.includes('branch')) {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        repos: [{
-          id: 1,
-          name: "Alzheimers-App",
-          full_name: "HARNOOR2004/Alzheimers-App",
-          default_branch: "main"
-        }],
-        branches: [{ name: "main" }]
-      })
-    });
-  }
-
-  return route.continue();
-});
   await page.goto(SITE);
 
   await page.waitForSelector('text=Agent Tasks', { timeout: 60000 });
-  await page.waitForLoadState('domcontentloaded');
+  await page.waitForLoadState('networkidle');
 
   await closeBanner(page);
   await page.keyboard.press('Escape');
 
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(2000); // final settle
 });
 
 // =====================================================================
@@ -522,7 +464,7 @@ test('10. Repo dropdown opens and lists repos', async ({ page }) => {
   // jsClick — bypasses overflow:hidden
   await jsClick(repo.trigger);
 await page.waitForTimeout(1500);
-
+await page.waitForLoadState('networkidle');
 
   const filterInput = page.locator('input[placeholder*="repositories"]');
   const opened = await filterInput.isVisible({ timeout: 4000 }).catch(() => false);
@@ -560,7 +502,7 @@ test('11. Can switch repo', async ({ page }) => {
   const originalText = repo.text;
  await jsClick(repo.trigger);
 await page.waitForTimeout(1500);
-
+await page.waitForLoadState('networkidle');
   await page.waitForTimeout(1000);
 
   const filterInput = page.locator('input[placeholder*="repositories"]');
@@ -620,7 +562,7 @@ test('12. Branch dropdown opens and lists branches', async ({ page }) => {
 
   await jsClick(branchBtn);
 await page.waitForTimeout(1500);
-
+await page.waitForLoadState('networkidle');
 
   const filterInput = page.locator('input[placeholder*="branch"]');
   const opened = await filterInput.isVisible({ timeout: 4000 }).catch(() => false);
@@ -661,7 +603,7 @@ test('13. Can interact with branch selector', async ({ page }) => {
   const originalText = (await branchBtn.innerText().catch(() => '')).trim();
 await jsClick(branchBtn);
 await page.waitForTimeout(1500);
-
+await page.waitForLoadState('networkidle');
 
   const filterInput = page.locator('input[placeholder*="branch"]');
   if (!(await filterInput.isVisible({ timeout: 4000 }).catch(() => false))) {
@@ -855,8 +797,7 @@ test('16. Multi-Agent: open dialog, list agents, select Blackbox + Claude, verif
   }
   console.log(`  ✅ Agents visible in dialog: [${foundAgents.map(a => a.name).join(', ')}]`);
 
-  // ── Select Blackbox ──
-  const blackboxEntry = foundAgents.find(a => /blackbox/i.test(a.name));
+const blackboxEntry = foundAgents.find(a => /blackbox/i.test(a.name));
   if (!blackboxEntry) {
     await page.screenshot({ path: 'test-results/16-blackbox-missing.png' });
     await closeDialogIfOpen(page);
@@ -880,6 +821,7 @@ await page.waitForTimeout(1200);
   console.log('  ✅ Claude clicked');
 
   await page.screenshot({ path: 'test-results/16-agents-selected.png' });
+
 
   // ── Verify both are selected (checked state) ──
   // Radix UI checkboxes use data-state="checked" on the checkbox element
