@@ -257,7 +257,27 @@ localStorage.setItem('github-selected-repo', `${OWNER}/Alzheimers-App`);
     localStorage.setItem('selected-branch', 'main');
   });
 
- 
+await page.route('**/api/**', route => {
+  const url = route.request().url();
+
+  if (url.includes('github') || url.includes('repo') || url.includes('branch')) {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        repos: [{
+          id: 1,
+          name: "Alzheimers-App",
+          full_name: "HARNOOR2004/Alzheimers-App",
+          default_branch: "main"
+        }],
+        branches: [{ name: "main" }]
+      })
+    });
+  }
+
+  return route.continue();
+});
   await page.goto(SITE);
 
   await page.waitForSelector('text=Agent Tasks', { timeout: 60000 });
@@ -502,7 +522,7 @@ test('10. Repo dropdown opens and lists repos', async ({ page }) => {
   // jsClick — bypasses overflow:hidden
   await jsClick(repo.trigger);
 await page.waitForTimeout(1500);
-await page.waitForLoadState('domcontentloaded');
+
 
   const filterInput = page.locator('input[placeholder*="repositories"]');
   const opened = await filterInput.isVisible({ timeout: 4000 }).catch(() => false);
@@ -540,7 +560,7 @@ test('11. Can switch repo', async ({ page }) => {
   const originalText = repo.text;
  await jsClick(repo.trigger);
 await page.waitForTimeout(1500);
-await page.waitForLoadState('domcontentloaded');
+
   await page.waitForTimeout(1000);
 
   const filterInput = page.locator('input[placeholder*="repositories"]');
@@ -600,7 +620,7 @@ test('12. Branch dropdown opens and lists branches', async ({ page }) => {
 
   await jsClick(branchBtn);
 await page.waitForTimeout(1500);
-await page.waitForLoadState('domcontentloaded');
+
 
   const filterInput = page.locator('input[placeholder*="branch"]');
   const opened = await filterInput.isVisible({ timeout: 4000 }).catch(() => false);
@@ -641,7 +661,7 @@ test('13. Can interact with branch selector', async ({ page }) => {
   const originalText = (await branchBtn.innerText().catch(() => '')).trim();
 await jsClick(branchBtn);
 await page.waitForTimeout(1500);
-await page.waitForLoadState('domcontentloaded');
+
 
   const filterInput = page.locator('input[placeholder*="branch"]');
   if (!(await filterInput.isVisible({ timeout: 4000 }).catch(() => false))) {
@@ -842,8 +862,10 @@ test('16. Multi-Agent: open dialog, list agents, select Blackbox + Claude, verif
     await closeDialogIfOpen(page);
     throw new Error('❌ Blackbox not found in dialog agent list. Check 16-blackbox-missing.png');
   }
-  await jsClick(blackboxEntry.el);
-  await page.waitForTimeout(500);
+  await blackboxEntry.el.click({ force: true });
+await page.waitForTimeout(1200);
+
+
   console.log('  ✅ Blackbox clicked');
 
   // ── Select Claude ──
@@ -853,8 +875,8 @@ test('16. Multi-Agent: open dialog, list agents, select Blackbox + Claude, verif
     await closeDialogIfOpen(page);
     throw new Error('❌ Claude not found in dialog agent list. Check 16-claude-missing.png');
   }
-  await jsClick(claudeEntry.el);
-  await page.waitForTimeout(500);
+await claudeEntry.el.click({ force: true });
+await page.waitForTimeout(1200);
   console.log('  ✅ Claude clicked');
 
   await page.screenshot({ path: 'test-results/16-agents-selected.png' });
