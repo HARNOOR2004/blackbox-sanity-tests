@@ -125,10 +125,15 @@ async function getRepoTrigger(page) {
 
     console.log("CHECK:", text);
 
-    if (!text || text.length < 2) continue;
-    if (isModelText(text)) continue;
-    if (isAgentText(text)) continue;
-    if (/^(main|master|default|develop|add-e2e)$/i.test(text)) continue;
+if (!text || text.length < 2) continue;
+if (text.toLowerCase() === 'more') continue;
+if (SIDEBAR_LABEL_RE.test(text)) continue;
+if (isModelText(text)) continue;
+if (isAgentText(text)) continue;
+if (/^(main|master|default|develop|add-e2e)$/i.test(text)) continue;
+
+
+if (!text.includes('/') && text.length < 4) continue;
 
   
     return { trigger: el, text };
