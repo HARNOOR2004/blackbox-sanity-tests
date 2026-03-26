@@ -7,3 +7,5 @@ playwright-report/
 chrome-profile/
 test-report/
 verify-login.js
+auth.json
+saveAuth.js
