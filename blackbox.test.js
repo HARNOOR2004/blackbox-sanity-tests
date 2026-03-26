@@ -108,15 +108,32 @@ async function getAllSelectTriggers(page) {
  * So the trigger text will be "HARNOOR2004/Alzheimers-App" or just "Alzheimers-App".
  */
 async function getRepoTrigger(page) {
-  const triggers = await getAllSelectTriggers(page);
-  for (const item of triggers) {
-   if (!item.text || item.text.length < 2) continue;
-    if (isModelText(item.text)) continue;
-    if (isAgentText(item.text)) continue;
-    if (/^(main|master|default|develop|add-e2e|release|hotfix)$/i.test(item.text)) continue;
-    // Repo trigger remains — it's the only select-trigger with repo-name text
-    return item;
+  
+  const textarea = page.locator('textarea').first();
+
+  
+  const container = textarea.locator('xpath=ancestor::div[3]');
+
+
+  const candidates = container.locator('button');
+
+  const count = await candidates.count();
+
+  for (let i = 0; i < count; i++) {
+    const el = candidates.nth(i);
+    const text = (await el.innerText().catch(() => '')).trim();
+
+    console.log("CHECK:", text);
+
+    if (!text || text.length < 2) continue;
+    if (isModelText(text)) continue;
+    if (isAgentText(text)) continue;
+    if (/^(main|master|default|develop|add-e2e)$/i.test(text)) continue;
+
+  
+    return { trigger: el, text };
   }
+
   return null;
 }
 
