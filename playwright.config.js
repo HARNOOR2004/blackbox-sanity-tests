@@ -7,7 +7,7 @@ module.exports = defineConfig({
   workers: 1,
   reporter: [['list'], ['html', { outputFolder: 'test-report', open: 'never' }]],
   use: {
-    headless: false,
+    headless: true,
     baseURL: 'https://cloud.blackbox.ai',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
