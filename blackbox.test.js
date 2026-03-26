@@ -103,7 +103,7 @@ async function getAllSelectTriggers(page) {
 async function getRepoTrigger(page) {
   const triggers = await getAllSelectTriggers(page);
   for (const item of triggers) {
-    if (!item.text) continue;
+   if (!item.text || item.text.length < 2) continue;
     if (isModelText(item.text)) continue;
     if (isAgentText(item.text)) continue;
     if (/^(main|master|default|develop|add-e2e|release|hotfix)$/i.test(item.text)) continue;
@@ -155,16 +155,27 @@ async function getModelTrigger(page) {
  * The repo trigger loads asynchronously after page hydration.
  * Returns { trigger, text } or null.
  */
-async function waitForRepoTrigger(page, maxMs = 15000) {
+async function waitForRepoTrigger(page, maxMs = 20000) {
   const start = Date.now();
 
   while (Date.now() - start < maxMs) {
     const repo = await getRepoTrigger(page);
-    if (repo) return repo;
-    await page.waitForTimeout(500);
+
+    if (repo) {
+      console.log("✅ Repo detected:", repo.text);
+      return repo;
+    }
+
+    console.log("⏳ Waiting for repo...");
+    await page.waitForTimeout(2000);
   }
 
-  throw new Error("❌ GitHub repo trigger not found — connection lost");
+  const triggers = await page.locator('[data-slot="select-trigger"]').allTextContents();
+  console.log("DEBUG triggers:", triggers);
+
+  await page.screenshot({ path: 'test-results/github-final-state.png', fullPage: true });
+
+  throw new Error("❌ GitHub repo not found after retries (likely connection dropped after validation)");
 }
 
 /**
@@ -223,7 +234,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto(SITE);
 
   await page.waitForSelector('text=Agent Tasks', { timeout: 60000 });
-  await page.waitForLoadState('networkidle');
+ await page.waitForTimeout(4000);
 
   await closeBanner(page);
   await page.keyboard.press('Escape');
@@ -424,17 +435,13 @@ test('09. GitHub connected — repo trigger visible in composer', async ({ page 
   const repo = await waitForRepoTrigger(page, 15000);
 
   if (!repo) {
-    // Debug: log all select-trigger texts to understand what's in the DOM
-    const all = page.locator('[data-slot="select-trigger"]');
-    const allCount = await all.count();
-    const allTexts = [];
-    for (let i = 0; i < allCount; i++) {
-      allTexts.push((await all.nth(i).innerText().catch(() => '?')).trim());
-    }
-    await page.screenshot({ path: 'test-results/09-github-fail.png' });
-    throw new Error("❌ GitHub connection issue — repo/branch not available");
-    return;
-  }
+  const triggers = await page.locator('[data-slot="select-trigger"]').allTextContents();
+  console.log("DEBUG triggers:", triggers);
+
+  await page.screenshot({ path: 'test-results/github-fail.png', fullPage: true });
+
+  throw new Error("❌ GitHub repo not found after retries (connection likely dropped)");
+}
 
   console.log(`✅ GitHub connected — repo trigger: "${repo.text}"`);
   await page.screenshot({ path: 'test-results/09-github-connected.png' });
@@ -454,17 +461,20 @@ test('09b. GitHub remains connected (no drop)', async ({ page }) => {
 });
 test('10. Repo dropdown opens and lists repos', async ({ page }) => {
   const repo = await waitForRepoTrigger(page, 15000);
-  if (!repo) {
-    await page.screenshot({ path: 'test-results/10-repo-missing.png' });
-    throw new Error("❌ GitHub connection issue — repo/branch not available");
-   
-  }
+if (!repo) {
+  const triggers = await page.locator('[data-slot="select-trigger"]').allTextContents();
+  console.log("DEBUG triggers:", triggers);
+
+  await page.screenshot({ path: 'test-results/github-fail.png', fullPage: true });
+
+  throw new Error("❌ GitHub repo not found after retries (connection likely dropped)");
+}
 
   console.log(`  Clicking repo trigger: "${repo.text}"`);
   // jsClick — bypasses overflow:hidden
   await jsClick(repo.trigger);
 await page.waitForTimeout(1500);
-await page.waitForLoadState('networkidle');
+await page.waitForTimeout(2000);
 
   const filterInput = page.locator('input[placeholder*="repositories"]');
   const opened = await filterInput.isVisible({ timeout: 4000 }).catch(() => false);
@@ -495,14 +505,18 @@ await page.waitForLoadState('networkidle');
 test('11. Can switch repo', async ({ page }) => {
   const repo = await waitForRepoTrigger(page, 15000);
   if (!repo) {
-   throw new Error("❌ GitHub connection issue — repo/branch not available");
-    return;
-  }
+  const triggers = await page.locator('[data-slot="select-trigger"]').allTextContents();
+  console.log("DEBUG triggers:", triggers);
+
+  await page.screenshot({ path: 'test-results/github-fail.png', fullPage: true });
+
+  throw new Error("❌ GitHub repo not found after retries (connection likely dropped)");
+}
 
   const originalText = repo.text;
  await jsClick(repo.trigger);
 await page.waitForTimeout(1500);
-await page.waitForLoadState('networkidle');
+await page.waitForTimeout(2000);
   await page.waitForTimeout(1000);
 
   const filterInput = page.locator('input[placeholder*="repositories"]');
@@ -562,7 +576,7 @@ test('12. Branch dropdown opens and lists branches', async ({ page }) => {
 
   await jsClick(branchBtn);
 await page.waitForTimeout(1500);
-await page.waitForLoadState('networkidle');
+await page.waitForTimeout(2000);
 
   const filterInput = page.locator('input[placeholder*="branch"]');
   const opened = await filterInput.isVisible({ timeout: 4000 }).catch(() => false);
@@ -603,7 +617,7 @@ test('13. Can interact with branch selector', async ({ page }) => {
   const originalText = (await branchBtn.innerText().catch(() => '')).trim();
 await jsClick(branchBtn);
 await page.waitForTimeout(1500);
-await page.waitForLoadState('networkidle');
+await page.waitForTimeout(2000);
 
   const filterInput = page.locator('input[placeholder*="branch"]');
   if (!(await filterInput.isVisible({ timeout: 4000 }).catch(() => false))) {
