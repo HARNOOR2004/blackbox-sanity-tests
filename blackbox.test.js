@@ -223,7 +223,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto(SITE);
 
   await page.waitForSelector('text=Agent Tasks', { timeout: 60000 });
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 
   await closeBanner(page);
   await page.keyboard.press('Escape');
@@ -464,7 +464,7 @@ test('10. Repo dropdown opens and lists repos', async ({ page }) => {
   // jsClick — bypasses overflow:hidden
   await jsClick(repo.trigger);
 await page.waitForTimeout(1500);
-await page.waitForLoadState('networkidle');
+await page.waitForLoadState('domcontentloaded');
 
   const filterInput = page.locator('input[placeholder*="repositories"]');
   const opened = await filterInput.isVisible({ timeout: 4000 }).catch(() => false);
@@ -502,7 +502,7 @@ test('11. Can switch repo', async ({ page }) => {
   const originalText = repo.text;
  await jsClick(repo.trigger);
 await page.waitForTimeout(1500);
-await page.waitForLoadState('networkidle');
+await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(1000);
 
   const filterInput = page.locator('input[placeholder*="repositories"]');
@@ -562,7 +562,7 @@ test('12. Branch dropdown opens and lists branches', async ({ page }) => {
 
   await jsClick(branchBtn);
 await page.waitForTimeout(1500);
-await page.waitForLoadState('networkidle');
+await page.waitForLoadState('domcontentloaded');
 
   const filterInput = page.locator('input[placeholder*="branch"]');
   const opened = await filterInput.isVisible({ timeout: 4000 }).catch(() => false);
@@ -603,7 +603,7 @@ test('13. Can interact with branch selector', async ({ page }) => {
   const originalText = (await branchBtn.innerText().catch(() => '')).trim();
 await jsClick(branchBtn);
 await page.waitForTimeout(1500);
-await page.waitForLoadState('networkidle');
+await page.waitForLoadState('domcontentloaded');
 
   const filterInput = page.locator('input[placeholder*="branch"]');
   if (!(await filterInput.isVisible({ timeout: 4000 }).catch(() => false))) {
