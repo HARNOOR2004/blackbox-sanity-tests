@@ -2,9 +2,8 @@ name: Blackbox Daily Sanity Suite
 
 on:
   schedule:
-    # Runs every day at 9:00 AM IST (3:30 AM UTC)
     - cron: '30 3 * * *'
-  workflow_dispatch: # Also allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   sanity-tests:
@@ -28,7 +27,15 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Create auth.json from secret
-        run: echo '${{ secrets.AUTH_JSON }}' > auth.json
+        run: |
+          cat <<EOF > auth.json
+          ${{ secrets.AUTH_JSON }}
+          EOF
+
+      - name: Debug auth.json
+        run: |
+          ls -l auth.json
+          head -c 200 auth.json
 
       - name: Run Playwright tests
         run: npx playwright test --reporter=list,html
@@ -40,7 +47,7 @@ jobs:
         if: always()
         with:
           name: playwright-report-${{ github.run_number }}
-          path: test-report/
+          path: playwright-report/
           retention-days: 30
 
       - name: Upload test screenshots on failure
